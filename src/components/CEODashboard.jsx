@@ -87,16 +87,17 @@ function CEODashboard({ user, onLogout }) {
     const validRows = rows.filter(row => row.client?.trim());
     const openRows = validRows.filter(row => row.status === 'Open');
     const converted = validRows.filter(row => row.status === 'Converted').length;
+    const uniqueClients = new Set(validRows.map(r => r.client.trim().toLowerCase()));
 
     return {
-      clients: validRows.length,
+      clients: uniqueClients.size,
       fresh: validRows.filter(row => row.wk >= data.state.weekNo).length,
       hourly: openRows.filter(row => row.type === 'Hourly').length,
       pipeline: openRows.reduce((sum, row) => sum + rowWorth(row), 0),
       big: openRows.filter(row => rowWorth(row) >= data.state.thresh && rowWorth(row) > 0).length,
       Converted: converted,
       revenue: validRows.reduce((sum, row) => sum + rowRevenue(row), 0),
-      conv: validRows.length ? converted / validRows.length : 0,
+      conv: uniqueClients.size ? converted / uniqueClients.size : 0,
       bids,
     };
   };
@@ -209,14 +210,17 @@ function CEODashboard({ user, onLogout }) {
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: '11%' }}>Date</th>
-                  <th style={{ width: '14%' }}>Client</th>
-                  <th style={{ width: '10%' }}>Team</th>
-                  <th style={{ width: '10%' }}>Bidder</th>
-                  <th className="r" style={{ width: '9%' }}>Worth</th>
-                  <th className="c" style={{ width: '8%' }}>Int.</th>
-                  <th className="c" style={{ width: '11%' }}>Status</th>
-                  <th style={{ width: '27%' }}>TL instruction to bidder</th>
+                  <th style={{ width: '10%' }}>Date</th>
+                  <th style={{ width: '13%' }}>Client</th>
+                  <th style={{ width: '9%' }}>Team</th>
+                  <th style={{ width: '9%' }}>Bidder</th>
+                  <th className="c" style={{ width: '7%' }}>Type</th>
+                  <th className="r" style={{ width: '6%' }}>Hrs</th>
+                  <th className="r" style={{ width: '6%' }}>Amt/Hr</th>
+                  <th className="r" style={{ width: '8%' }}>Worth</th>
+                  <th className="c" style={{ width: '6%' }}>Int.</th>
+                  <th className="c" style={{ width: '10%' }}>Status</th>
+                  <th style={{ width: '16%' }}>TL instruction to bidder</th>
                 </tr>
               </thead>
               <tbody>
@@ -237,6 +241,9 @@ function CEODashboard({ user, onLogout }) {
                       <td>{r.client}</td>
                       <td>{teamInfo?.name}</td>
                       <td>{bidderInfo?.name}</td>
+                      <td className="c">{r.type}</td>
+                      <td className="r">{r.type === 'Fixed' ? <span className="muted-inline">-</span> : r.workedHours}</td>
+                      <td className="r">{r.type === 'Fixed' ? <span className="muted-inline">-</span> : r.amtPerHour}</td>
                       <td className="r">${rowWorth(r).toLocaleString()}</td>
                       <td className="c">{r.interviews}</td>
                       <td className="c"><span className={`tag auto`}>{r.status}</span></td>
@@ -281,7 +288,7 @@ function CEODashboard({ user, onLogout }) {
                 <tbody>
                   {team.bidders.map(b => (
                     <tr key={b.id}>
-                      <td>{b.name} {b.direct === 1 ? '(Direct)' : ''}</td>
+                      <td>{b.direct === true || b.direct === 1 ? "Direct and repeat clients" : b.name}</td>
                       <td className="c">{b.stats.bids}</td>
                       <td className="c">{b.stats.clients}</td>
                       <td className="r">${b.stats.pipeline.toLocaleString()}</td>
